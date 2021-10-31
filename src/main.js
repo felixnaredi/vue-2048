@@ -65,18 +65,22 @@ const store = new Vuex.Store({
     emptyCells (_, getters) {
       return getters.cells.filter(cellIsEmpty)
     },
-    movedCellRight: (_, getters) => (cell, row) => {
-      const neighbour = row.find((other) => other.coord.x === cell.coord.x + 1)
+    movedCell: (_, getters) => (cell, section, neighbourCoord) => {
+      const neighbour = section.find((other) => {
+        const { y: y1, x: x1 } = neighbourCoord(cell)
+        const { y: y2, x: x2 } = other.coord
+        return y1 === y2 && x1 === x2
+      })
 
       if (neighbour == null) {
-        return row
+        return section
       }
 
       if (neighbour.value == null) {
         neighbour.value = cell.value
         cell.value = null
 
-        return getters.movedCellRight(neighbour, row)
+        return getters.movedCell(neighbour, section, neighbourCoord)
       }
 
       if (neighbour.value === cell.value) {
@@ -84,74 +88,25 @@ const store = new Vuex.Store({
         cell.value = null
       }
 
-      return row
+      return section
+    },
+    movedCellRight: (_, getters) => (cell, row) => {
+      return getters.movedCell(cell, row, ({ coord: { y, x } }) => Coord(y, x + 1))
     },
     movedCellLeft: (_, getters) => (cell, row) => {
-      const neighbour = row.find((other) => other.coord.x === cell.coord.x - 1)
-
-      if (neighbour == null) {
-        return row
-      }
-
-      if (neighbour.value == null) {
-        neighbour.value = cell.value
-        cell.value = null
-
-        return getters.movedCellLeft(neighbour, row)
-      }
-
-      if (neighbour.value === cell.value) {
-        neighbour.value *= 2
-        cell.value = null
-      }
-
-      return row
+      return getters.movedCell(cell, row, ({ coord: { y, x } }) => Coord(y, x - 1))
     },
     movedCellDown: (_, getters) => (cell, column) => {
-      const neighbour = column.find((other) => other.coord.y === cell.coord.y + 1)
-
-      if (neighbour == null) {
-        return column
-      }
-
-      if (neighbour.value == null) {
-        neighbour.value = cell.value
-        cell.value = null
-
-        return getters.movedCellDown(neighbour, column)
-      }
-
-      if (neighbour.value === cell.value) {
-        neighbour.value *= 2
-        cell.value = null
-      }
-
-      return column
+      return getters.movedCell(cell, column, ({ coord: { y, x } }) => Coord(y + 1, x))
     },
     movedCellUp: (_, getters) => (cell, column) => {
-      const neighbour = column.find((other) => other.coord.y === cell.coord.y - 1)
-
-      if (neighbour == null) {
-        return column
-      }
-
-      if (neighbour.value == null) {
-        neighbour.value = cell.value
-        cell.value = null
-
-        return getters.movedCellUp(neighbour, column)
-      }
-
-      if (neighbour.value === cell.value) {
-        neighbour.value *= 2
-        cell.value = null
-      }
-
-      return column
+      return getters.movedCell(cell, column, ({ coord: { y, x } }) => Coord(y - 1, x))
     },
     movedRowRight: (state, getters) => (y) => {
       let row = getters.getRow(y)
-      range(state.width - 1, -1).forEach((i) => { row = getters.movedCellRight(row[i], row) })
+      range(state.width - 1, -1).forEach((i) => {
+        row = getters.movedCellRight(row[i], row)
+      })
       return row
     },
     movedRowLeft: (state, getters) => (y) => {
@@ -160,14 +115,16 @@ const store = new Vuex.Store({
       return row
     },
     movedColumnDown: (state, getters) => (x) => {
-      let row = getters.getColumn(x)
-      range(state.height - 1, -1).forEach((i) => { row = getters.movedCellDown(row[i], row) })
-      return row
+      let column = getters.getColumn(x)
+      range(state.height - 1, -1).forEach((i) => {
+        column = getters.movedCellDown(column[i], column)
+      })
+      return column
     },
     movedColumnUp: (state, getters) => (x) => {
-      let row = getters.getColumn(x)
-      range(state.height).forEach((i) => { row = getters.movedCellUp(row[i], row) })
-      return row
+      let column = getters.getColumn(x)
+      range(state.height).forEach((i) => { column = getters.movedCellUp(column[i], column) })
+      return column
     }
   },
   mutations: {
