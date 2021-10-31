@@ -2,6 +2,10 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import Vuex from 'vuex'
 
+function id (x) {
+  return x
+}
+
 function sample (array) {
   return array[Math.floor(Math.random() * array.length)]
 }
@@ -38,8 +42,8 @@ const store = new Vuex.Store({
     width: 4,
     table: [],
     step: {
-      amounts: [2, 3],
-      values: [1, 1, 1, 2, 2, 2, 4]
+      amounts: [1],
+      values: [1, 2]
     }
   },
   getters: {
@@ -170,45 +174,56 @@ const store = new Vuex.Store({
     empty (state) {
       range(state.height).forEach(() => state.table.push(Array(state.width).fill(null)))
       console.log(state.table)
-    },
-    setCell (state, { coord: { y, x }, value }) {
-      state.table[y][x] = value
     }
   },
   actions: {
-    step ({ state, getters, commit }) {
+    setCell ({ state }, { coord: { y, x }, value }) {
+      const table = state.table
+
+      if (value === table[y][x]) {
+        return false
+      }
+
+      state.table[y][x] = value
+      return true
+    },
+    step ({ state, getters, dispatch }) {
       const { amounts, values } = state.step
       range(sample(amounts)).forEach(() => {
         const cell = sample(getters.emptyCells)
         if (cell) {
           const { y, x } = cell.coord
-          commit('setCell', Cell(y, x, sample(values)))
+          dispatch('setCell', Cell(y, x, sample(values)))
         }
       })
     },
-    moveRight ({ state, getters, commit }) {
-      range(state.height)
+    async moveRight ({ state, getters, dispatch }) {
+      return Promise.all(range(state.height)
         .map((y) => getters.movedRowRight(y))
         .flat()
-        .forEach((cell) => commit('setCell', cell))
+        .map((cell) => dispatch('setCell', cell))
+      ).then((results) => results.some(id))
     },
-    moveLeft ({ state, getters, commit }) {
-      range(state.height)
+    async moveLeft ({ state, getters, dispatch }) {
+      return Promise.all(range(state.height)
         .map((y) => getters.movedRowLeft(y))
         .flat()
-        .forEach((cell) => commit('setCell', cell))
+        .map((cell) => dispatch('setCell', cell))
+      ).then((results) => results.some(id))
     },
-    moveDown ({ state, getters, commit }) {
-      range(state.width)
+    async moveDown ({ state, getters, dispatch }) {
+      return Promise.all(range(state.height)
         .map((y) => getters.movedColumnDown(y))
         .flat()
-        .forEach((cell) => commit('setCell', cell))
+        .map((cell) => dispatch('setCell', cell))
+      ).then((results) => results.some(id))
     },
-    moveUp ({ state, getters, commit }) {
-      range(state.width)
+    async moveUp ({ state, getters, dispatch }) {
+      return Promise.all(range(state.height)
         .map((y) => getters.movedColumnUp(y))
         .flat()
-        .forEach((cell) => commit('setCell', cell))
+        .map((cell) => dispatch('setCell', cell))
+      ).then((results) => results.some(id))
     }
   }
 })

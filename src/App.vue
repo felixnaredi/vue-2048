@@ -58,26 +58,17 @@ export default {
     this.$store.dispatch('step')
   },
   methods: {
-    moveLeft () {
-      console.log(event)
-      this.$store.dispatch('moveLeft')
-      this.$store.dispatch('step')
+    move(action) {
+      this.$store.dispatch(action).then((change) => {
+        if (change) {
+          this.$store.dispatch('step')
+        }
+      })
     },
-    moveRight (event) {
-      console.log(event)
-      this.$store.dispatch('moveRight')
-      this.$store.dispatch('step')
-    },
-    moveDown () {
-      console.log(event)
-      this.$store.dispatch('moveDown')
-      this.$store.dispatch('step')
-    },
-    moveUp (event) {
-      console.log(event)
-      this.$store.dispatch('moveUp')
-      this.$store.dispatch('step')
-    }
+    moveLeft () { this.move('moveLeft') },
+    moveRight () { this.move('moveRight') },
+    moveDown () { this.move('moveDown') },
+    moveUp () { this.move('moveUp') }
   }
 }
 </script>
