@@ -25,7 +25,9 @@
       </table>
     </main>
     <p>Click on the table and then use the arrow keys to move the cells.</p>
-    <button @click="reset">Reset</button>
+    <button @click="reset">
+      Reset
+    </button>
   </div>
 </template>
 
@@ -62,12 +64,10 @@ export default {
       this.$store.dispatch('step')
       this.$store.dispatch('step')
     },
-    move(action) {
-      this.$store.dispatch(action).then((change) => {
-        if (change) {
-          this.$store.dispatch('step')
-        }
-      })
+    async move (action) {
+      if (await this.$store.dispatch(action)) {
+        this.$store.dispatch('step')
+      }
     },
     moveLeft () { this.move('moveLeft') },
     moveRight () { this.move('moveRight') },

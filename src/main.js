@@ -125,61 +125,65 @@ const store = new Vuex.Store({
       let column = getters.getColumn(x)
       range(state.height).forEach((i) => { column = getters.movedCellUp(column[i], column) })
       return column
+    },
+    containsEqualCell: ({ table }) => ({ coord: { y, x }, value }) => {
+      return table[y][x] === value
     }
   },
   mutations: {
     empty (state) {
       state.table = []
       range(state.height).forEach(() => state.table.push(Array(state.width).fill(null)))
+    },
+    setCell ({ table }, { coord: { y, x }, value }) {
+      table[y][x] = value
     }
   },
   actions: {
-    setCell ({ state }, { coord: { y, x }, value }) {
-      const table = state.table
-
-      if (value === table[y][x]) {
-        return false
-      }
-
-      state.table[y][x] = value
-      return true
-    },
-    step ({ state, getters, dispatch }) {
+    step ({ state, getters, commit }) {
       const { amounts, values } = state.step
-      range(sample(amounts)).forEach(() => {
+
+      range(amounts).forEach(() => {
         const cell = sample(getters.emptyCells)
         if (cell) {
           const { y, x } = cell.coord
-          dispatch('setCell', Cell(y, x, sample(values)))
+          commit('setCell', Cell(y, x, sample(values)))
         }
       })
+    },
+    async insertCell ({ getters, commit }, cell) {
+      if (getters.containsEqualCell(cell)) {
+        return false
+      }
+      commit('setCell', cell)
+      return true
     },
     async moveRight ({ state, getters, dispatch }) {
       return Promise.all(range(state.height)
         .map((y) => getters.movedRowRight(y))
         .flat()
-        .map((cell) => dispatch('setCell', cell))
+        .map((cell) => dispatch('insertCell', cell))
       ).then((results) => results.some(id))
     },
     async moveLeft ({ state, getters, dispatch }) {
       return Promise.all(range(state.height)
         .map((y) => getters.movedRowLeft(y))
         .flat()
-        .map((cell) => dispatch('setCell', cell))
+        .map((cell) => dispatch('insertCell', cell))
       ).then((results) => results.some(id))
     },
     async moveDown ({ state, getters, dispatch }) {
       return Promise.all(range(state.height)
         .map((y) => getters.movedColumnDown(y))
         .flat()
-        .map((cell) => dispatch('setCell', cell))
+        .map((cell) => dispatch('insertCell', cell))
       ).then((results) => results.some(id))
     },
     async moveUp ({ state, getters, dispatch }) {
       return Promise.all(range(state.height)
         .map((y) => getters.movedColumnUp(y))
         .flat()
-        .map((cell) => dispatch('setCell', cell))
+        .map((cell) => dispatch('insertCell', cell))
       ).then((results) => results.some(id))
     }
   }
