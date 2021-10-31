@@ -172,8 +172,8 @@ const store = new Vuex.Store({
   },
   mutations: {
     empty (state) {
+      state.table = []
       range(state.height).forEach(() => state.table.push(Array(state.width).fill(null)))
-      console.log(state.table)
     }
   },
   actions: {

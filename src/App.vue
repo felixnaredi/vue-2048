@@ -25,7 +25,7 @@
       </table>
     </main>
     <p>Click on the table and then use the arrow keys to move the cells.</p>
-    <p>If no valid options are left, refresh the page.</p>
+    <button @click="reset">Reset</button>
   </div>
 </template>
 
@@ -54,10 +54,14 @@ export default {
     }
   },
   created () {
-    this.$store.commit('empty')
-    this.$store.dispatch('step')
+    this.reset()
   },
   methods: {
+    reset () {
+      this.$store.commit('empty')
+      this.$store.dispatch('step')
+      this.$store.dispatch('step')
+    },
     move(action) {
       this.$store.dispatch(action).then((change) => {
         if (change) {
