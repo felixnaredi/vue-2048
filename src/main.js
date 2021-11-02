@@ -21,10 +21,32 @@ function range (lower, upper) {
   return Array.from(Array(distance).keys()).map((a) => a + lower)
 }
 
+/**
+ * Coordinate in for a position in 2D space.
+ *
+ * @param {Number} y
+ * @param {Number} x
+ * @returns A `Coord` object.
+ */
 function Coord (y, x) {
   return { y: y, x: x }
 }
 
+/**
+ * `Cell` is the data type that keeps the state for a single cell.
+ *
+ * TODO:
+ *   It's not important that `mergeAtMoveCount` keeps track of the actual move count but should
+ *   contain something unique enough so that the value produced by a move will never be equal
+ *   to a cells `mergeAtMoveCount` (or whatever it will be called then) already present on the
+ *   board.
+ *
+ * @param {Number} y
+ * @param {Number} x
+ * @param {Number} value Value of cell
+ * @param {Number} mergedAtMoveCount Value of step counter when the cell might have been merged
+ * @returns A `Cell` object.
+ */
 function Cell (y, x, value, mergedAtMoveCount) {
   return {
     coord: Coord(y, x),
