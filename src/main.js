@@ -25,24 +25,26 @@ function Coord (y, x) {
   return { y: y, x: x }
 }
 
-function Cell (y, x, value) {
+function Cell (y, x, value, mergedAtMoveCount) {
   return {
     coord: Coord(y, x),
-    value: value
+    value: value,
+    mergedAtMoveCount: mergedAtMoveCount
   }
 }
 
-function cellIsEmpty ({ value }) {
-  return value == null
+function cellIsEmpty (cell) {
+  return cell.value == null
 }
 
 const store = new Vuex.Store({
   state: {
     height: 4,
     width: 4,
+    moveCounter: 0,
     table: [],
-    step: {
-      amounts: [1],
+    stepConfig: {
+      amount: 1,
       values: [1, 2]
     }
   },
@@ -51,13 +53,17 @@ const store = new Vuex.Store({
       if (y < 0 || x < 0 || y >= state.height || x >= state.width) {
         return null
       }
-      return Cell(y, x, state.table[y][x])
+      const cell = state.table[y][x]
+      if (cell) {
+        return Cell(y, x, cell.value, cell.mergedAtMoveCount)
+      }
+      return Cell(y, x, null, null)
     },
-    getRow: (state) => (y) => {
-      return state.table[y].map((value, x) => Cell(y, x, value))
+    getRow: (state, getters) => (y) => {
+      return range(state.width).map((x) => getters.getCell(Coord(y, x)))
     },
-    getColumn: (state) => (x) => {
-      return range(state.height).map((y) => Cell(y, x, state.table[y][x]))
+    getColumn: (state, getters) => (x) => {
+      return range(state.height).map((y) => getters.getCell(Coord(y, x)))
     },
     cells (state, getters) {
       return range(state.height).map((y) => getters.getRow(y)).flat()
@@ -68,7 +74,7 @@ const store = new Vuex.Store({
     emptyCells (_, getters) {
       return getters.cells.filter(cellIsEmpty)
     },
-    movedCell: (_, getters) => (cell, section, neighbourCoord) => {
+    movedCell: (state, getters) => (cell, section, neighbourCoord) => {
       const neighbour = section.find((other) => {
         const { y: y1, x: x1 } = neighbourCoord(cell)
         const { y: y2, x: x2 } = other.coord
@@ -86,8 +92,13 @@ const store = new Vuex.Store({
         return getters.movedCell(neighbour, section, neighbourCoord)
       }
 
-      if (neighbour.value === cell.value) {
+      /*
+       * The neighbours `mergedAtMoveCount` is checked to prevent it from being merged twice during
+       * the same move.
+       */
+      if (neighbour.value === cell.value && neighbour.mergedAtMoveCount !== state.moveCounter) {
         neighbour.value *= 2
+        neighbour.mergedAtMoveCount = state.moveCounter
         cell.value = null
       }
 
@@ -129,8 +140,9 @@ const store = new Vuex.Store({
       range(state.height).forEach((i) => { column = getters.movedCellUp(column[i], column) })
       return column
     },
-    containsEqualCell: ({ table }) => ({ coord: { y, x }, value }) => {
-      return table[y][x] === value
+    containsEqualCell: (_, getters) => ({ coord: { y, x }, value }) => {
+      const { value: other } = getters.getCell(Coord(y, x))
+      return value === other
     }
   },
   mutations: {
@@ -138,19 +150,22 @@ const store = new Vuex.Store({
       state.table = []
       range(state.height).forEach(() => state.table.push(Array(state.width).fill(null)))
     },
-    setCell ({ table }, { coord: { y, x }, value }) {
-      table[y][x] = value
+    setCell ({ table }, { coord: { y, x }, value, mergedAtMoveCount }) {
+      table[y][x] = { value: value, mergedAtMoveCount: mergedAtMoveCount }
+    },
+    incrementMoveCounter (state) {
+      state.moveCounter += 1
     }
   },
   actions: {
     step ({ state, getters, commit }) {
-      const { amounts, values } = state.step
+      const { amount, values } = state.stepConfig
 
-      range(amounts).forEach(() => {
+      range(amount).forEach(() => {
         const cell = sample(getters.emptyCells)
         if (cell) {
           const { y, x } = cell.coord
-          commit('setCell', Cell(y, x, sample(values)))
+          commit('setCell', Cell(y, x, sample(values), null))
         }
       })
     },
@@ -161,33 +176,27 @@ const store = new Vuex.Store({
       commit('setCell', cell)
       return true
     },
+    async updateMove ({ commit, dispatch }, cells) {
+      if (await Promise.all(cells
+        .map((cell) => dispatch('insertCell', cell)))
+        .then((results) => results.some(id))
+      ) {
+        commit('incrementMoveCounter')
+        return true
+      }
+      return false
+    },
     async moveRight ({ state, getters, dispatch }) {
-      return Promise.all(range(state.height)
-        .map((y) => getters.movedRowRight(y))
-        .flat()
-        .map((cell) => dispatch('insertCell', cell))
-      ).then((results) => results.some(id))
+      return dispatch('updateMove', (range(state.height).map(getters.movedRowRight)).flat())
     },
     async moveLeft ({ state, getters, dispatch }) {
-      return Promise.all(range(state.height)
-        .map((y) => getters.movedRowLeft(y))
-        .flat()
-        .map((cell) => dispatch('insertCell', cell))
-      ).then((results) => results.some(id))
+      return dispatch('updateMove', (range(state.height).map(getters.movedRowLeft)).flat())
     },
     async moveDown ({ state, getters, dispatch }) {
-      return Promise.all(range(state.height)
-        .map((y) => getters.movedColumnDown(y))
-        .flat()
-        .map((cell) => dispatch('insertCell', cell))
-      ).then((results) => results.some(id))
+      return dispatch('updateMove', (range(state.width).map(getters.movedColumnDown)).flat())
     },
     async moveUp ({ state, getters, dispatch }) {
-      return Promise.all(range(state.height)
-        .map((y) => getters.movedColumnUp(y))
-        .flat()
-        .map((cell) => dispatch('insertCell', cell))
-      ).then((results) => results.some(id))
+      return dispatch('updateMove', (range(state.width).map(getters.movedColumnUp)).flat())
     }
   }
 })
