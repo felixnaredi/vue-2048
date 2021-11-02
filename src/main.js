@@ -62,6 +62,9 @@ const store = new Vuex.Store({
     cells (state, getters) {
       return range(state.height).map((y) => getters.getRow(y)).flat()
     },
+    nonEmptyCells (_, getters) {
+      return getters.cells.filter((cell) => !cellIsEmpty(cell))
+    },
     emptyCells (_, getters) {
       return getters.cells.filter(cellIsEmpty)
     },

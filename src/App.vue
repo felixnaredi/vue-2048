@@ -28,25 +28,18 @@
     <button @click="reset">
       Reset
     </button>
+    <div id="score-board-container">
+      <score-board id="score-board" />
+    </div>
   </div>
 </template>
 
 <script>
-/*
-function Coord (y, x) {
-  return { y: y, x: x }
-}
-
-function Cell (y, x, value) {
-  return {
-    coord: Coord(y, x),
-    value: value
-  }
-}
-*/
+import ScoreBoard from './components/ScoreBoard.vue'
 
 export default {
   name: 'App',
+  components: { ScoreBoard },
   computed: {
     height () {
       return this.$store.state.height
@@ -94,5 +87,13 @@ td {
   width: 64px;
   height: 64px;
   border: 1px solid black;
+}
+#score-board {
+  width: 500px;
+  margin-top: 1em;
+}
+#score-board-container {
+  display: flex;
+  justify-content: center;
 }
 </style>
